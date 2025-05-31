@@ -70,7 +70,7 @@ const Sidebar = () => {
       <div className="p-4 lg:p-6">
         <div className="flex items-center justify-between">
           {(!collapsed || mobileOpen) && (
-            <h2 className="text-lg lg:text-xl font-bold text-white">ComandAI</h2>
+            <h2 className="text-xl font-bold text-white">ComandAI</h2>
           )}
           <div className="flex items-center space-x-2">
             {/* Botão de colapsar para desktop */}
@@ -108,7 +108,7 @@ const Sidebar = () => {
                   isActive
                     ? "bg-[#70a5ff] text-white hover:bg-[#5a8ff0]"
                     : "text-gray-400 hover:text-white hover:bg-gray-700"
-                } ${collapsed && !mobileOpen ? "px-2" : "px-3"}`}
+                } ${collapsed && !mobileOpen ? "px-2 justify-center" : "px-3"}`}
               >
                 <Icon size={16} className="shrink-0" />
                 {(!collapsed || mobileOpen) && (
@@ -125,7 +125,7 @@ const Sidebar = () => {
           variant="ghost"
           onClick={handleLogout}
           className={`w-full justify-start text-gray-400 hover:text-white hover:bg-gray-700 ${
-            collapsed && !mobileOpen ? "px-2" : "px-3"
+            collapsed && !mobileOpen ? "px-2 justify-center" : "px-3"
           }`}
         >
           <LogOut size={16} className="shrink-0" />

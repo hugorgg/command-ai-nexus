@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, User, DollarSign, Plus, Filter } from "lucide-react";
+import { Calendar, Clock, User, DollarSign, Plus, Filter, CheckCircle } from "lucide-react";
 
 interface Agendamento {
   id: string;
@@ -70,6 +70,40 @@ const Agendamentos = () => {
     }
   };
 
+  const updateAgendamentoStatus = async (id: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("agendamentos")
+        .update({ status: newStatus })
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Atualizar o estado local
+      setAgendamentos(prev => 
+        prev.map(agendamento => 
+          agendamento.id === id 
+            ? { ...agendamento, status: newStatus }
+            : agendamento
+        )
+      );
+
+      toast({
+        title: "Status atualizado",
+        description: `Agendamento marcado como ${newStatus.toLowerCase()}.`,
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast({
+        title: "Erro ao atualizar status",
+        description: "Não foi possível atualizar o status do agendamento.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const applyFilters = () => {
     let filtered = agendamentos;
 
@@ -108,17 +142,17 @@ const Agendamentos = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 p-4 md:p-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-white">Agendamentos</h1>
+      <div className="space-y-6 p-6">
+        <h1 className="text-3xl font-bold text-white">Agendamentos</h1>
         <div className="text-gray-400">Carregando agendamentos...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-white">Agendamentos</h1>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-white">Agendamentos</h1>
         <Button className="bg-[#70a5ff] hover:bg-[#5a8ff0] text-white">
           <Plus size={16} className="mr-2" />
           Novo Agendamento
@@ -162,17 +196,17 @@ const Agendamentos = () => {
         </CardContent>
       </Card>
 
-      {/* Lista de Agendamentos */}
+      {/* Lista de Agendamentos em Cards */}
       <div className="grid gap-4">
         {filteredAgendamentos.length > 0 ? (
           filteredAgendamentos.map((agendamento) => (
-            <Card key={agendamento.id} className="bg-[#161b22] border-gray-700">
-              <CardContent className="p-4 md:p-6">
+            <Card key={agendamento.id} className="bg-[#161b22] border-gray-700 hover:border-gray-600 transition-colors">
+              <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center space-x-2">
                       <User size={16} className="text-[#70a5ff]" />
-                      <span className="text-white font-medium text-sm md:text-base">
+                      <span className="text-white font-medium text-lg">
                         {agendamento.nome_cliente}
                       </span>
                     </div>
@@ -199,16 +233,31 @@ const Agendamentos = () => {
                     </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
                     {agendamento.valor && (
                       <div className="flex items-center text-green-500 font-semibold">
                         <DollarSign size={14} className="mr-1" />
                         R$ {Number(agendamento.valor).toFixed(2)}
                       </div>
                     )}
-                    <Badge className={`${getStatusColor(agendamento.status)} text-white`}>
-                      {agendamento.status}
-                    </Badge>
+                    
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${getStatusColor(agendamento.status)} text-white`}>
+                        {agendamento.status}
+                      </Badge>
+                      
+                      {agendamento.status !== "Concluído" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateAgendamentoStatus(agendamento.id, "Concluído")}
+                          className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                        >
+                          <CheckCircle size={14} className="mr-1" />
+                          Concluir
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
