@@ -10,8 +10,10 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-[#0d1117] flex">
       <Sidebar />
-      <main className="flex-1 p-6 ml-64">
-        {children}
+      <main className="flex-1 transition-all duration-300 ml-16 lg:ml-64">
+        <div className="min-h-screen">
+          {children}
+        </div>
       </main>
     </div>
   );

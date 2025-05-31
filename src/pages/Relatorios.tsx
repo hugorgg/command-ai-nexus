@@ -1,51 +1,105 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart3, TrendingUp, Users, DollarSign, Download, Lock } from "lucide-react";
-
-interface EmpresaInfo {
-  plano: string;
-}
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { BarChart3, TrendingUp, Calendar, DollarSign } from "lucide-react";
 
 const Relatorios = () => {
-  const [empresaInfo, setEmpresaInfo] = useState<EmpresaInfo | null>(null);
-  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [periodo, setPeriodo] = useState("30");
+  const [agendamentosData, setAgendamentosData] = useState<any[]>([]);
+  const [pagamentosData, setPagamentosData] = useState<any[]>([]);
+  const [canaisData, setCanaisData] = useState<any[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const COLORS = ['#70a5ff', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchRelatorios();
+  }, [periodo]);
+
+  const fetchRelatorios = async () => {
     try {
       const { data: empresa } = await supabase
         .from("empresas")
-        .select("id, plano")
+        .select("id")
         .eq("email", "demo@comandai.com")
         .single();
 
       if (empresa) {
-        setEmpresaInfo({ plano: empresa.plano });
+        // Buscar dados de agendamentos por período
+        const dataInicio = new Date();
+        dataInicio.setDate(dataInicio.getDate() - parseInt(periodo));
 
-        // Buscar estatísticas se o plano permitir
-        if (["Pro", "Plus", "Personalizado"].includes(empresa.plano)) {
-          const { data: statsData } = await supabase
-            .rpc("get_dashboard_stats", { p_empresa_id: empresa.id });
-          
-          setStats(statsData);
-        }
+        const { data: agendamentos } = await supabase
+          .from("agendamentos")
+          .select("data, status, valor")
+          .eq("empresa_id", empresa.id)
+          .gte("criado_em", dataInicio.toISOString());
+
+        // Processar dados de agendamentos por dia
+        const agendamentosPorDia = agendamentos?.reduce((acc: any, item) => {
+          const data = new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+          if (!acc[data]) {
+            acc[data] = { data, total: 0, concluidos: 0 };
+          }
+          acc[data].total += 1;
+          if (item.status === 'Concluído') {
+            acc[data].concluidos += 1;
+          }
+          return acc;
+        }, {});
+
+        setAgendamentosData(Object.values(agendamentosPorDia || {}));
+
+        // Buscar dados de pagamentos
+        const { data: pagamentos } = await supabase
+          .from("pagamentos")
+          .select("valor, status, metodo, recebido_em")
+          .eq("empresa_id", empresa.id)
+          .gte("recebido_em", dataInicio.toISOString());
+
+        // Processar dados de pagamentos por dia
+        const pagamentosPorDia = pagamentos?.reduce((acc: any, item) => {
+          const data = new Date(item.recebido_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+          if (!acc[data]) {
+            acc[data] = { data, receita: 0 };
+          }
+          if (item.status === 'Pago') {
+            acc[data].receita += Number(item.valor);
+          }
+          return acc;
+        }, {});
+
+        setPagamentosData(Object.values(pagamentosPorDia || {}));
+
+        // Buscar dados de canais de atendimento
+        const { data: atendimentos } = await supabase
+          .from("atendimentos")
+          .select("canal")
+          .eq("empresa_id", empresa.id)
+          .gte("criado_em", dataInicio.toISOString());
+
+        // Processar dados por canal
+        const atendimentosPorCanal = atendimentos?.reduce((acc: any, item) => {
+          const canal = item.canal || 'Não especificado';
+          if (!acc[canal]) {
+            acc[canal] = { name: canal, value: 0 };
+          }
+          acc[canal].value += 1;
+          return acc;
+        }, {});
+
+        setCanaisData(Object.values(atendimentosPorCanal || {}));
       }
     } catch (error) {
-      console.error("Erro ao buscar dados:", error);
+      console.error("Erro ao buscar relatórios:", error);
       toast({
-        title: "Erro ao carregar dados",
-        description: "Não foi possível carregar as informações.",
+        title: "Erro ao carregar relatórios",
+        description: "Não foi possível carregar os dados dos relatórios.",
         variant: "destructive",
       });
     } finally {
@@ -53,227 +107,200 @@ const Relatorios = () => {
     }
   };
 
-  const handleGeneratePDF = async () => {
-    setGeneratingPDF(true);
-    
-    try {
-      // Simular chamada para N8N para gerar PDF
-      // Em uma implementação real, aqui seria feita a chamada para a API N8N
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simular delay
-      
-      toast({
-        title: "PDF Gerado",
-        description: "O relatório em PDF foi gerado com sucesso!",
-      });
-      
-      // Aqui seria retornado o link do PDF gerado
-      console.log("PDF gerado via N8N");
-      
-    } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
-      toast({
-        title: "Erro ao gerar PDF",
-        description: "Não foi possível gerar o relatório em PDF.",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-
-  const isProPlan = empresaInfo && ["Pro", "Plus", "Personalizado"].includes(empresaInfo.plano);
-
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-white">Relatórios</h1>
+      <div className="space-y-6 p-4 md:p-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Relatórios</h1>
         <div className="text-gray-400">Carregando relatórios...</div>
       </div>
     );
   }
 
-  if (!isProPlan) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-white">Relatórios</h1>
-        
-        <Card className="bg-[#161b22] border-gray-700">
-          <CardContent className="p-8 text-center">
-            <Lock size={64} className="mx-auto text-gray-600 mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">
-              Funcionalidade Exclusiva para Planos Pro+
-            </h2>
-            <p className="text-gray-400 mb-4">
-              Os relatórios avançados estão disponíveis apenas para os planos Pro, Plus e Personalizado.
-            </p>
-            <Badge variant="outline" className="border-[#70a5ff] text-[#70a5ff]">
-              Plano Atual: {empresaInfo?.plano}
-            </Badge>
-            <div className="mt-6">
-              <Button className="bg-[#70a5ff] hover:bg-[#5a8ff0] text-white">
-                Fazer Upgrade do Plano
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-white">Relatórios</h1>
-        <Button
-          onClick={handleGeneratePDF}
-          disabled={generatingPDF}
-          className="bg-[#70a5ff] hover:bg-[#5a8ff0] text-white"
-        >
-          <Download size={16} className="mr-2" />
-          {generatingPDF ? "Gerando PDF..." : "Gerar PDF"}
-        </Button>
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Relatórios</h1>
+        <div className="w-full sm:w-auto">
+          <Select value={periodo} onValueChange={setPeriodo}>
+            <SelectTrigger className="bg-[#161b22] border-gray-600 text-white">
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#161b22] border-gray-700">
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="90">Últimos 3 meses</SelectItem>
+              <SelectItem value="365">Último ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Cards de Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="bg-[#161b22] border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">
-              Total de Atendimentos
+              Total Agendamentos
             </CardTitle>
-            <Users className="h-4 w-4 text-[#70a5ff]" />
+            <Calendar className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {stats?.total_atendimentos || 0}
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {agendamentosData.reduce((sum, item) => sum + item.total, 0)}
             </div>
-            <p className="text-xs text-green-500">
-              +12% vs mês anterior
-            </p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#161b22] border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">
-              Lucratividade
+              Receita Total
             </CardTitle>
             <DollarSign className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
-              R$ {Number(stats?.total_receita || 0).toFixed(2)}
+            <div className="text-xl md:text-2xl font-bold text-white">
+              R$ {pagamentosData.reduce((sum, item) => sum + item.receita, 0).toFixed(2)}
             </div>
-            <p className="text-xs text-green-500">
-              +8% vs mês anterior
-            </p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#161b22] border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">
-              Taxa de Conversão
+              Taxa de Conclusão
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
-              67.5%
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {agendamentosData.length > 0
+                ? ((agendamentosData.reduce((sum, item) => sum + item.concluidos, 0) /
+                    agendamentosData.reduce((sum, item) => sum + item.total, 0)) * 100).toFixed(1)
+                : 0}%
             </div>
-            <p className="text-xs text-green-500">
-              +3.2% vs mês anterior
-            </p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#161b22] border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">
-              Crescimento de Clientes
+              Canais Ativos
             </CardTitle>
             <BarChart3 className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
-              +24
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {canaisData.length}
             </div>
-            <p className="text-xs text-green-500">
-              +15% vs mês anterior
-            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Relatório Detalhado */}
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico de Agendamentos */}
+        <Card className="bg-[#161b22] border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Agendamentos por Dia</CardTitle>
+            <CardDescription className="text-gray-400">
+              Total de agendamentos e conclusões no período
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] md:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={agendamentosData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="data" stroke="#9ca3af" fontSize={12} />
+                  <YAxis stroke="#9ca3af" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#161b22",
+                      border: "1px solid #374151",
+                      color: "#ffffff",
+                    }}
+                  />
+                  <Bar dataKey="total" fill="#70a5ff" name="Total" />
+                  <Bar dataKey="concluidos" fill="#10b981" name="Concluídos" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Gráfico de Receita */}
+        <Card className="bg-[#161b22] border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Receita por Dia</CardTitle>
+            <CardDescription className="text-gray-400">
+              Evolução da receita no período
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] md:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={pagamentosData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="data" stroke="#9ca3af" fontSize={12} />
+                  <YAxis stroke="#9ca3af" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#161b22",
+                      border: "1px solid #374151",
+                      color: "#ffffff",
+                    }}
+                    formatter={(value) => [`R$ ${Number(value).toFixed(2)}`, 'Receita']}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="receita" 
+                    stroke="#70a5ff" 
+                    strokeWidth={2}
+                    dot={{ fill: '#70a5ff' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gráfico de Pizza - Canais de Atendimento */}
       <Card className="bg-[#161b22] border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Análise Detalhada</CardTitle>
+          <CardTitle className="text-white">Distribuição por Canal de Atendimento</CardTitle>
           <CardDescription className="text-gray-400">
-            Insights avançados sobre o desempenho do seu negócio
+            Percentual de atendimentos por canal
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Performance de Atendimento</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Tempo médio de resposta</span>
-                  <span className="text-white font-medium">2m 30s</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Taxa de resolução</span>
-                  <span className="text-green-500 font-medium">94%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Satisfação do cliente</span>
-                  <span className="text-green-500 font-medium">4.8/5</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Canais Mais Utilizados</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">WhatsApp</span>
-                  <span className="text-white font-medium">65%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Instagram</span>
-                  <span className="text-white font-medium">25%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Telegram</span>
-                  <span className="text-white font-medium">10%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Recomendações</h3>
-            <div className="space-y-3">
-              <div className="p-3 bg-[#0d1117] rounded-lg border border-gray-700">
-                <p className="text-white font-medium">📈 Oportunidade de Crescimento</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  Considere expandir o atendimento no Telegram para aproveitar o crescimento de 25% no último mês.
-                </p>
-              </div>
-              <div className="p-3 bg-[#0d1117] rounded-lg border border-gray-700">
-                <p className="text-white font-medium">🎯 Otimização de Processo</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  Automatizar respostas para perguntas frequentes pode reduzir o tempo de resposta em até 40%.
-                </p>
-              </div>
-              <div className="p-3 bg-[#0d1117] rounded-lg border border-gray-700">
-                <p className="text-white font-medium">💰 Aumento de Receita</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  Implementar cross-selling durante os atendimentos pode aumentar a receita em 15-20%.
-                </p>
-              </div>
-            </div>
+        <CardContent>
+          <div className="h-[300px] md:h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={canaisData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {canaisData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#161b22",
+                    border: "1px solid #374151",
+                    color: "#ffffff",
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>

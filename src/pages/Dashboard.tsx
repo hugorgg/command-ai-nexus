@@ -61,7 +61,9 @@ const Dashboard = () => {
         if (statsError) {
           console.error("Erro ao buscar estatísticas:", statsError);
         } else {
-          setStats(statsData);
+          // Converter o JSON retornado para o tipo esperado
+          const parsedStats = typeof statsData === 'string' ? JSON.parse(statsData) : statsData;
+          setStats(parsedStats as DashboardStats);
         }
 
         // Buscar notificações recentes
@@ -105,19 +107,19 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+      <div className="space-y-6 p-4 md:p-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
         <div className="text-gray-400">Carregando dados...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+    <div className="space-y-6 p-4 md:p-6">
+      <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
 
       {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="bg-[#161b22] border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">
@@ -126,7 +128,7 @@ const Dashboard = () => {
             <MessageSquare className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-xl md:text-2xl font-bold text-white">
               {stats?.total_atendimentos || 0}
             </div>
           </CardContent>
@@ -140,7 +142,7 @@ const Dashboard = () => {
             <Calendar className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-xl md:text-2xl font-bold text-white">
               {stats?.total_agendamentos || 0}
             </div>
           </CardContent>
@@ -154,7 +156,7 @@ const Dashboard = () => {
             <DollarSign className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-xl md:text-2xl font-bold text-white">
               R$ {Number(stats?.total_receita || 0).toFixed(2)}
             </div>
           </CardContent>
@@ -168,7 +170,7 @@ const Dashboard = () => {
             <TrendingUp className="h-4 w-4 text-[#70a5ff]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-xl md:text-2xl font-bold text-white">
               {stats?.total_mensagens || 0}
             </div>
           </CardContent>
@@ -181,22 +183,24 @@ const Dashboard = () => {
           <CardTitle className="text-white">Atendimentos dos Últimos 7 Dias</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stats?.atendimentos_por_dia || []}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="data" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#161b22",
-                  border: "1px solid #374151",
-                  color: "#ffffff",
-                }}
-              />
-              <Bar dataKey="atendimentos" fill="#70a5ff" />
-              <Bar dataKey="agendamentos" fill="#10b981" />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-[250px] md:h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats?.atendimentos_por_dia || []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="data" stroke="#9ca3af" fontSize={12} />
+                <YAxis stroke="#9ca3af" fontSize={12} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#161b22",
+                    border: "1px solid #374151",
+                    color: "#ffffff",
+                  }}
+                />
+                <Bar dataKey="atendimentos" fill="#70a5ff" />
+                <Bar dataKey="agendamentos" fill="#10b981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
@@ -217,14 +221,14 @@ const Dashboard = () => {
                   className="flex items-center space-x-3 p-3 rounded-lg bg-[#0d1117] border border-gray-700"
                 >
                   {getNotificationIcon(notif.tipo)}
-                  <div className="flex-1">
-                    <p className="text-white text-sm">{notif.mensagem}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm break-words">{notif.mensagem}</p>
                     <p className="text-gray-400 text-xs">
                       {new Date(notif.criado_em).toLocaleString()}
                     </p>
                   </div>
                   {notif.valor && (
-                    <div className="text-green-500 font-medium">
+                    <div className="text-green-500 font-medium text-sm">
                       R$ {Number(notif.valor).toFixed(2)}
                     </div>
                   )}
