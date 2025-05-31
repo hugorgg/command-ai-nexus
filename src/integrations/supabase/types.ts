@@ -11,28 +11,40 @@ export type Database = {
     Tables: {
       agendamentos: {
         Row: {
-          cliente: string | null
           criado_em: string | null
-          data: string | null
+          data: string
           empresa_id: string | null
+          hora: string | null
           id: string
+          nome_cliente: string
+          servico: string | null
           status: string | null
+          telefone: string | null
+          valor: number | null
         }
         Insert: {
-          cliente?: string | null
           criado_em?: string | null
-          data?: string | null
+          data: string
           empresa_id?: string | null
+          hora?: string | null
           id?: string
+          nome_cliente: string
+          servico?: string | null
           status?: string | null
+          telefone?: string | null
+          valor?: number | null
         }
         Update: {
-          cliente?: string | null
           criado_em?: string | null
-          data?: string | null
+          data?: string
           empresa_id?: string | null
+          hora?: string | null
           id?: string
+          nome_cliente?: string
+          servico?: string | null
           status?: string | null
+          telefone?: string | null
+          valor?: number | null
         }
         Relationships: [
           {
@@ -46,25 +58,31 @@ export type Database = {
       }
       atendimentos: {
         Row: {
-          concluido: boolean | null
+          canal: string | null
           criado_em: string | null
           descricao: string | null
           empresa_id: string | null
           id: string
+          nome_cliente: string | null
+          status: string | null
         }
         Insert: {
-          concluido?: boolean | null
+          canal?: string | null
           criado_em?: string | null
           descricao?: string | null
           empresa_id?: string | null
           id?: string
+          nome_cliente?: string | null
+          status?: string | null
         }
         Update: {
-          concluido?: boolean | null
+          canal?: string | null
           criado_em?: string | null
           descricao?: string | null
           empresa_id?: string | null
           id?: string
+          nome_cliente?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -76,28 +94,58 @@ export type Database = {
           },
         ]
       }
-      configuracoes: {
+      empresas: {
         Row: {
-          chave: string | null
-          empresa_id: string | null
+          criado_em: string | null
+          email: string
           id: string
-          valor: string | null
+          nome: string
+          plano: string
         }
         Insert: {
-          chave?: string | null
-          empresa_id?: string | null
+          criado_em?: string | null
+          email: string
           id?: string
-          valor?: string | null
+          nome: string
+          plano?: string
         }
         Update: {
-          chave?: string | null
-          empresa_id?: string | null
+          criado_em?: string | null
+          email?: string
           id?: string
-          valor?: string | null
+          nome?: string
+          plano?: string
+        }
+        Relationships: []
+      }
+      horarios: {
+        Row: {
+          ativo: boolean | null
+          dia_semana: string | null
+          empresa_id: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          dia_semana?: string | null
+          empresa_id?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          dia_semana?: string | null
+          empresa_id?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "configuracoes_empresa_id_fkey"
+            foreignKeyName: "horarios_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
@@ -105,42 +153,30 @@ export type Database = {
           },
         ]
       }
-      empresas: {
-        Row: {
-          criado_em: string | null
-          id: string
-          nome: string
-        }
-        Insert: {
-          criado_em?: string | null
-          id?: string
-          nome: string
-        }
-        Update: {
-          criado_em?: string | null
-          id?: string
-          nome?: string
-        }
-        Relationships: []
-      }
       notificacoes: {
         Row: {
           criado_em: string | null
           empresa_id: string | null
           id: string
-          mensagem: string | null
+          mensagem: string
+          tipo: string | null
+          valor: number | null
         }
         Insert: {
           criado_em?: string | null
           empresa_id?: string | null
           id?: string
-          mensagem?: string | null
+          mensagem: string
+          tipo?: string | null
+          valor?: number | null
         }
         Update: {
           criado_em?: string | null
           empresa_id?: string | null
           id?: string
-          mensagem?: string | null
+          mensagem?: string
+          tipo?: string | null
+          valor?: number | null
         }
         Relationships: [
           {
@@ -156,20 +192,29 @@ export type Database = {
         Row: {
           empresa_id: string | null
           id: string
+          metodo: string | null
+          nome_cliente: string | null
           recebido_em: string | null
-          valor: number | null
+          status: string | null
+          valor: number
         }
         Insert: {
           empresa_id?: string | null
           id?: string
+          metodo?: string | null
+          nome_cliente?: string | null
           recebido_em?: string | null
-          valor?: number | null
+          status?: string | null
+          valor: number
         }
         Update: {
           empresa_id?: string | null
           id?: string
+          metodo?: string | null
+          nome_cliente?: string | null
           recebido_em?: string | null
-          valor?: number | null
+          status?: string | null
+          valor?: number
         }
         Relationships: [
           {
@@ -181,34 +226,92 @@ export type Database = {
           },
         ]
       }
-      usuarios: {
+      pagamentos_links: {
         Row: {
-          criado_em: string | null
-          email: string
           empresa_id: string | null
           id: string
-          needs_password_change: boolean | null
-          senha: string | null
+          link_cartao: string | null
+          link_pix: string | null
+          link_unico: string | null
         }
         Insert: {
-          criado_em?: string | null
-          email: string
           empresa_id?: string | null
           id?: string
-          needs_password_change?: boolean | null
-          senha?: string | null
+          link_cartao?: string | null
+          link_pix?: string | null
+          link_unico?: string | null
         }
         Update: {
-          criado_em?: string | null
-          email?: string
           empresa_id?: string | null
           id?: string
-          needs_password_change?: boolean | null
-          senha?: string | null
+          link_cartao?: string | null
+          link_pix?: string | null
+          link_unico?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "usuarios_empresa_id_fkey"
+            foreignKeyName: "pagamentos_links_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      servicos: {
+        Row: {
+          criado_em: string | null
+          empresa_id: string | null
+          id: string
+          nome: string
+          valor: number
+        }
+        Insert: {
+          criado_em?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          valor: number
+        }
+        Update: {
+          criado_em?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tom_voz: {
+        Row: {
+          criado_em: string | null
+          empresa_id: string | null
+          id: string
+          prompt: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          empresa_id?: string | null
+          id?: string
+          prompt?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          empresa_id?: string | null
+          id?: string
+          prompt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tom_voz_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
